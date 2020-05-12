@@ -1,8 +1,8 @@
 const Twit = require("twit");
-const config = require("./config");
+const config = require("../config");
 
 const T = new Twit(config);
-
+console.log(1);
 let IDs = [
   "2405684716", // @welfje
 ];
