@@ -2,79 +2,114 @@ const Twit = require("twit");
 const config = require("../config");
 
 const T = new Twit(config);
-console.log(1);
-let IDs = [
-  "2405684716", // @welfje
-];
+
+// // tweet "foo"
+// // T.post('statuses/update', { status: "foo" })
+
+// // get status of media
+// // T.get('media/upload', { command: "STATUS", media_id: "1263871395437608961" }, bla)
+// // function bla(err, data, response) {
+// // 	// console.log(err);
+// // 	console.log(data);
+// // 	// console.log(response);
+// // }
 
 const stream = T.stream("statuses/filter", {
-  follow: IDs,
+	track: ["@vibingbot"]
 });
 
-function getTweetText(text) {
-  const textReplaced = text.replace("'", "\\'");
-  let inside;
-  if (textReplaced.length > 280 - 9) {
-    inside = textReplaced.substr(0, 280 - 9 - 3);
-    inside += "...";
-  } else {
-    inside = textReplaced.substr(0, 280 - 9);
-  }
-  return "write('" + inside + "')";
+function tweetEvent(tweet) {
+	// console.log(tweet);
+
+	T.get("statuses/show", { id: tweet.in_reply_to_status_id_str }, function (err, data, response) {
+		if (err !== undefined) { console.log(err); }
+
+		const variants = data.extended_entities.media[0].video_info.variants;
+		let highestBitrate = -1; // Only bitrates of 0 and higher are given 
+		let highestBitrateIndex = 0;
+		for (let i = 0; i < variants.length; i++) {
+			const variant = variants[i];
+			const bitrate = variant.bitrate;
+			if (bitrate > highestBitrate) {
+				highestBitrate = bitrate;
+				highestBitrateIndex = i;
+			}
+		}
+
+		const url = variants[highestBitrateIndex].url;
+		// Give combiner.py the URL
+		console.log(url);
+	})
+
+	if (tweet.in_reply_to_status_id !== null) {
+		console.log("Posting chunked media...")
+		const filePath = "output videos/bean.mp4";
+
+		T.postMediaChunked({ file_path: filePath }, async function (err, data, response) {
+			console.log("Finished posting chunked media!");
+
+			// console.log(data);
+			// while (data.processing_info.state === "pending") {
+			// 	console.log("Sleeping " + data.processing_info.check_after_secs + " secs...");
+			// 	await new Promise(r => setTimeout(r, data.processing_info.check_after_secs));
+			// 	T.get('media/upload', { command: "STATUS", media_id: "1263871395437608961" }, function (err2, data2, response2) {
+			// 		err = err2;
+			// 		data = data2;
+			// 		response = response2;
+			// 	});
+			// }
+
+			replyWithMedia(err, data, response);
+		})
+
+		function replyWithMedia(errMedia, dataMedia, responseMedia) {
+			console.log("Uploaded media!")
+
+			console.log("Replying with media...")
+
+			const name = tweet.user.screen_name;
+			const reply = `@${name}`;
+			const nameID = tweet.id_str;
+
+			// console.log("dataMedia.media_id_string:")
+			// console.log(dataMedia.media_id_string)
+
+			const mediaID = dataMedia.media_id_string;
+
+			const params = {
+				status: reply,
+				in_reply_to_status_id: nameID,
+				media_ids: [mediaID]
+			};
+
+			T.post("statuses/update", params, tweeted);
+
+			function tweeted(err, data, response) {
+				if (err !== undefined) {
+					console.log(err);
+				} else {
+					console.log("Replied: " + params.status);
+				}
+			}
+
+			console.log("Waiting on mention in a reply...");
+		}
+	}
 }
 
-function parseTweet(tweet) {
-  // console.log(tweet)
-
-  if (
-    tweet.in_reply_to_user_id !== null ||
-    !IDs.includes(tweet.user.id_str) ||
-    (tweet.retweeted_status !== null && tweet.retweeted_status !== undefined)
-  ) {
-    return;
-  }
-
-  const tweetText = getTweetText(tweet.text);
-
-  console.log("Original tweet: " + tweet.text);
-  console.log("LuaSchlatt's response: " + tweetText);
-
-  const nameID = tweet.id_str;
-  const name = tweet.user.screen_name;
-
-  T.post(
-    "statuses/update",
-    { in_reply_to_status_id: nameID, status: "@" + name + " " + tweetText },
-    function (err, data, response) {
-      if (err) {
-        console.log("Error!");
-        console.log(err);
-      } else if (response) {
-        console.log("Success!");
-        // console.log(response)
-      }
-    }
-  );
-
-  console.log("Waiting on tweet...");
-}
-
-stream.on("tweet", (tweet) => {
-  parseTweet(tweet);
-  return false;
-});
+stream.on("tweet", tweetEvent);
 
 stream.on("disconnect", function (disconn) {
-  console.log("Disconnect");
+	console.log("Disconnect");
 });
 
 stream.on("connect", function (conn) {
-  console.log("Connecting");
-  console.log("Waiting on tweet...");
+	console.log("Connecting");
+	console.log("Waiting on mention in a reply...");
 });
 
 stream.on("reconnect", function (reconn, res, interval) {
-  console.log("Reconnecting. statusCode:", res.statusCode);
+	console.log("Reconnecting. statusCode:", res.statusCode);
 });
 
 console.log("Running");
