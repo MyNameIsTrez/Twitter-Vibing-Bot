@@ -27,4 +27,4 @@ def download_file(url, input_video_name, input_video_extension):
 # silent dancing pizza doesn't work, not sure if the bot should reply that it can't process silent vids:
 # 'https://video.twimg.com/tweet_video/EYp_tsoWAAYeFG1.mp4'
 
-download_file('https://video.twimg.com/ext_tw_video/1263968501263486976/pu/vid/288x360/28H_5TU5z9oXilFR.mp4?tag=10', 'Satisfactory - Bean', '.mp4')
+download_file('https://video.twimg.com/ext_tw_video/1263968501263486976/pu/vid/288x360/28H_5TU5z9oXilFR.mp4?tag=10', 'bean 2', '.mp4')
