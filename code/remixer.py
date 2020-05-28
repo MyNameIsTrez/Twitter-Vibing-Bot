@@ -2,19 +2,20 @@ import os
 import requests
 import ffmpeg
 
+tempPath = 'temp/temp.mp4'
+
 # Function I stole from StackOverflow:
 # https://stackoverflow.com/a/35844551
-def download_file(url, input_video_name, input_video_extension):
+def download_file(url, input_video_name):
 	r = requests.get(url, stream=True)
-	fileName = 'input audio/temp.mp4'
-	with open(fileName, 'wb') as f:
+	with open(tempPath, 'wb') as f:
 		for chunk in r.iter_content(chunk_size=1024):
 			if chunk:
 				f.write(chunk)
 		f.close() # Necessary?
 
-	input_video = ffmpeg.input('input videos/' + input_video_name + input_video_extension)
-	input_audio = ffmpeg.input('input audio/temp.mp4')
+	input_video = ffmpeg.input('input videos/' + input_video_name + '.mp4')
+	input_audio = ffmpeg.input(tempPath)
 
 	(
 		ffmpeg
@@ -22,9 +23,12 @@ def download_file(url, input_video_name, input_video_extension):
 		.run()
 	)
 
-	os.remove('input audio/temp.mp4')
+	os.remove(tempPath)
 
 # silent dancing pizza doesn't work, not sure if the bot should reply that it can't process silent vids:
 # 'https://video.twimg.com/tweet_video/EYp_tsoWAAYeFG1.mp4'
 
-download_file('https://video.twimg.com/ext_tw_video/1263968501263486976/pu/vid/288x360/28H_5TU5z9oXilFR.mp4?tag=10', 'bean 2', '.mp4')
+download_file(
+	url = 'https://video.twimg.com/ext_tw_video/1263968501263486976/pu/vid/288x360/28H_5TU5z9oXilFR.mp4?tag=10',
+	input_video_name = 'dancing beans'
+)
